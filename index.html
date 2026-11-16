@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سجل الأحداث | Event Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b18;
+    --glass:rgba(255,255,255,.045);
+    --glass-2:rgba(255,255,255,.07);
+    --stroke:rgba(255,255,255,.11);
+    --txt:#e8eefb;
+    --muted:#8fa0bf;
+    --cyan:#38bdf8;
+    --violet:#a78bfa;
+    --teal:#2dd4bf;
+    --pink:#f472b6;
+    --danger:#fb7185;
+    --radius:20px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  body{
+    font-family:'Cairo',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--txt);
+    min-height:100vh;
+    padding:26px 16px 70px;
+    position:relative;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== خلفية إبداعية متحركة ===== */
+  body::before{
+    content:'';
+    position:fixed;inset:-25%;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(56,189,248,.28), transparent 42%),
+      radial-gradient(circle at 82% 8%,  rgba(167,139,250,.28), transparent 42%),
+      radial-gradient(circle at 62% 92%, rgba(45,212,191,.20), transparent 45%),
+      radial-gradient(circle at 8% 80%,  rgba(244,114,182,.16), transparent 42%);
+    filter:blur(28px);
+    z-index:-3;
+    animation:drift 20s ease-in-out infinite alternate;
+  }
+  body::after{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+    background-size:46px 46px;
+    z-index:-2;
+    mask-image:radial-gradient(circle at 50% 0%, #000 0%, transparent 78%);
+    -webkit-mask-image:radial-gradient(circle at 50% 0%, #000 0%, transparent 78%);
+  }
+  @keyframes drift{
+    0%{transform:translate3d(0,0,0) scale(1)}
+    100%{transform:translate3d(-4%,3%,0) scale(1.12)}
+  }
+
+  .wrap{max-width:1120px;margin:0 auto;position:relative}
+
+  /* ===== الهيدر ===== */
+  .top{
+    display:flex;flex-wrap:wrap;gap:18px;
+    align-items:center;justify-content:space-between;
+    margin-bottom:26px;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:56px;height:56px;border-radius:18px;flex:none;
+    display:grid;place-items:center;font-size:26px;
+    background:linear-gradient(145deg,var(--cyan),var(--violet));
+    box-shadow:0 10px 30px -8px rgba(56,189,248,.75), inset 0 1px 0 rgba(255,255,255,.4);
+    animation:float 4s ease-in-out infinite;
+  }
+  @keyframes float{50%{transform:translateY(-6px)}}
+
+  .brand h1{
+    font-size:clamp(20px,3.4vw,28px);font-weight:900;letter-spacing:-.4px;
+    background:linear-gradient(100deg,#fff,#9fd6ff 45%,#c9b3ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .brand p{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:2px}
+
+  /* الساعة الحية */
+  .clock{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 20px;border-radius:18px;
+    background:var(--glass);border:1px solid var(--stroke);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 12px 34px -18px rgba(0,0,0,.9);
+  }
+  .dot{
+    width:10px;height:10px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 0 0 rgba(45,212,191,.7);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    70%{box-shadow:0 0 0 11px rgba(45,212,191,0)}
+    100%{box-shadow:0 0 0 0 rgba(45,212,191,0)}
+  }
+  .clock .t{
+    font-size:clamp(20px,3vw,26px);font-weight:900;letter-spacing:1.5px;
+    font-variant-numeric:tabular-nums;
+    background:linear-gradient(90deg,var(--cyan),var(--teal));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .clock .d{font-size:12px;color:var(--muted);font-weight:700}
+
+  /* ===== الكروت ===== */
+  .card{
+    background:var(--glass);
+    border:1px solid var(--stroke);
+    border-radius:var(--radius);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    box-shadow:0 30px 60px -35px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.06);
+    padding:clamp(18px,3vw,30px);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';position:absolute;top:0;right:0;left:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);
+    opacity:.85;
+  }
+
+  .card-title{
+    display:flex;align-items:center;gap:10px;
+    font-size:16px;font-weight:800;margin-bottom:20px;
+  }
+  .card-title .bar{
+    width:5px;height:20px;border-radius:6px;
+    background:linear-gradient(var(--cyan),var(--violet));
+  }
+
+  /* ===== الفورم ===== */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:16px;
+  }
+  .f{display:flex;flex-direction:column;gap:7px}
+  .c3{grid-column:span 3}
+  .c6{grid-column:span 6}
+  .c12{grid-column:span 12}
+
+  label{
+    font-size:12.5px;font-weight:800;color:#b9c8e2;
+    display:flex;align-items:center;gap:6px;
+  }
+  label .ico{font-size:13px;opacity:.9}
+
+  input,textarea{
+    width:100%;
+    font-family:inherit;font-size:14.5px;font-weight:700;
+    color:var(--txt);
+    background:rgba(8,14,28,.62);
+    border:1.5px solid var(--stroke);
+    border-radius:14px;
+    padding:13px 15px;
+    outline:none;
+    transition:.25s;
+    -webkit-appearance:none;
+  }
+  textarea{resize:vertical;min-height:96px;line-height:1.65;font-weight:600}
+  input::placeholder,textarea::placeholder{color:#5f7292;font-weight:600}
+
+  input:focus,textarea:focus{
+    border-color:rgba(56,189,248,.75);
+    background:rgba(10,20,40,.85);
+    box-shadow:0 0 0 4px rgba(56,189,248,.14);
+  }
+
+  input[readonly]{
+    color:var(--cyan);
+    background:rgba(56,189,248,.07);
+    border-color:rgba(56,189,248,.25);
+    cursor:default;
+    letter-spacing:.6px;
+  }
+  #timeField{font-variant-numeric:tabular-nums;color:var(--teal);background:rgba(45,212,191,.08);border-color:rgba(45,212,191,.28)}
+  
+  /* حقل وقت وقوع الحدث */
+  input[type="time"]{
+    color-scheme:dark;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.6px;
+  }
+  #occTimeField{
+    color:var(--pink);
+    background:rgba(244,114,182,.08);
+    border-color:rgba(244,114,182,.3);
+    font-weight:900;
+    font-size:15px;
+  }
+  #occTimeField:focus{
+    border-color:rgba(244,114,182,.7);
+    background:rgba(40,15,30,.85);
+    box-shadow:0 0 0 4px rgba(244,114,182,.15);
+  }
+
+  /* ===== الأزرار ===== */
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+
+  .btn{
+    font-family:inherit;font-size:14.5px;font-weight:800;
+    border:none;border-radius:14px;
+    padding:14px 26px;
+    cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    transition:.22s;
+    white-space:nowrap;
+    position:relative;
+    overflow:hidden;
+  }
+  .btn:active{transform:scale(.97)}
+
+  .btn-main{
+    color:#04101f;
+    background:linear-gradient(135deg,var(--cyan),#7dd3fc 40%,var(--violet));
+    box-shadow:0 16px 34px -14px rgba(56,189,248,.9);
+    flex:1 1 200px;
+  }
+  .btn-main:hover{box-shadow:0 20px 42px -12px rgba(56,189,248,1);transform:translateY(-2px)}
+
+  .btn-excel{
+    color:#062a17;
+    background:linear-gradient(135deg,#34d399,#a3e635);
+    box-shadow:0 14px 30px -14px rgba(52,211,153,.9);
+  }
+  .btn-excel:hover{transform:translateY(-2px);box-shadow:0 18px 38px -12px rgba(52,211,153,1)}
+
+  .btn-ghost{
+    color:#c3d2ea;
+    background:var(--glass-2);
+    border:1.5px solid var(--stroke);
+  }
+  .btn-ghost:hover{background:rgba(251,113,133,.14);border-color:rgba(251,113,133,.5);color:#ffc2cb}
+
+  /* زر "الآن" بجانب وقت الوقوع */
+  .now-btn{
+    flex:none;
+    padding:0 20px !important;
+    font-size:13px !important;
+    border:1.5px solid rgba(244,114,182,.35) !important;
+    background:rgba(244,114,182,.08) !important;
+    color:#ffb8d4 !important;
+  }
+  .now-btn:hover{
+    background:rgba(244,114,182,.2) !important;
+    border-color:rgba(244,114,182,.6) !important;
+    color:#fff !important;
+  }
+
+  .hint-box{
+    display:flex;align-items:center;gap:8px;
+    padding:13px 14px;
+    background:rgba(244,114,182,.05);
+    border:1px dashed rgba(244,114,182,.22);
+    border-radius:14px;
+    font-size:11.5px;color:#8fa0bf;font-weight:600;line-height:1.45;
+  }
+  .hint-box .hint-ico{font-size:15px;opacity:.75}
+
+  /* ===== الجدول ===== */
+  .table-card{margin-top:26px}
+
+  .table-head{
+    display:flex;flex-wrap:wrap;gap:14px;
+    align-items:center;justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .counter{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:800;color:#b9c8e2;
+    background:rgba(56,189,248,.1);
+    border:1px solid rgba(56,189,248,.26);
+    padding:7px 14px;border-radius:999px;
+  }
+  .counter b{color:var(--cyan);font-size:14px}
+
+  .scroll{
+    overflow-x:auto;
+    border-radius:16px;
+    border:1px solid var(--stroke);
+    -webkit-overflow-scrolling:touch;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1020px;
+    font-size:14px;
+  }
+  thead th{
+    background:linear-gradient(180deg,rgba(56,189,248,.16),rgba(167,139,250,.10));
+    color:#cfe4ff;
+    font-weight:800;font-size:12.5px;
+    padding:13px 11px;
+    text-align:right;
+    white-space:nowrap;
+    border-bottom:1px solid var(--stroke);
+    position:sticky;top:0;
+  }
+  tbody td{
+    padding:12px 11px;
+    border-bottom:1px solid rgba(255,255,255,.055);
+    vertical-align:top;
+    line-height:1.6;
+  }
+  tbody tr{transition:.2s;animation:rowIn .35s ease both}
+  @keyframes rowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  tbody tr:hover{background:rgba(56,189,248,.06)}
+  tbody tr:last-child td{border-bottom:none}
+
+  .id-pill{
+    display:inline-grid;place-items:center;
+    min-width:34px;height:30px;padding:0 8px;
+    border-radius:10px;
+    font-weight:900;font-size:13px;
+    color:#04101f;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));
+    box-shadow:0 6px 16px -8px rgba(56,189,248,.9);
+  }
+  .date-cell{color:#a9bcd8;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .day-cell{color:#b8c8e2;font-weight:700;white-space:nowrap}
+  .occ-time-cell{color:var(--pink);font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14.5px}
+  .time-cell{color:#7dd3fc;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+  .title-cell{font-weight:800;color:#fff;min-width:140px}
+  .det-cell{color:#9fb1cc;font-weight:600;max-width:340px;word-break:break-word}
+
+  .del{
+    width:34px;height:34px;border-radius:11px;
+    border:1px solid rgba(251,113,133,.32);
+    background:rgba(251,113,133,.1);
+    color:#ffb3c0;font-size:15px;cursor:pointer;
+    display:grid;place-items:center;transition:.2s;
+  }
+  .del:hover{background:rgba(251,113,133,.28);color:#fff;transform:scale(1.08)}
+
+  .empty{
+    text-align:center;padding:54px 20px;color:#68799a;
+  }
+  .empty .em{font-size:46px;display:block;margin-bottom:12px;opacity:.55}
+  .empty p{font-weight:700;font-size:14px}
+
+  /* ===== التوست ===== */
+  #toast{
+    position:fixed;bottom:26px;left:50%;
+    transform:translate(-50%,140%);
+    background:linear-gradient(135deg,#0f2a24,#123043);
+    border:1px solid rgba(45,212,191,.5);
+    color:#c9fff2;
+    padding:14px 26px;border-radius:14px;
+    font-weight:800;font-size:14px;
+    box-shadow:0 22px 48px -18px rgba(0,0,0,1);
+    transition:transform .4s cubic-bezier(.2,1.2,.4,1);
+    z-index:99;
+    display:flex;align-items:center;gap:9px;
+    max-width:92vw;
+  }
+  #toast.show{transform:translate(-50%,0)}
+  #toast.err{background:linear-gradient(135deg,#331019,#3a1420);border-color:rgba(251,113,133,.55);color:#ffd3da}
+
+  /* ===== الاستجابة ===== */
+  @media (max-width:900px){
+    .c3{grid-column:span 6}
+    .c6{grid-column:span 12}
+  }
+  @media (max-width:620px){
+    body{padding:18px 12px 60px}
+    .c3,.c6{grid-column:span 12}
+    .top{justify-content:center;text-align:center}
+    .brand{flex-direction:column;text-align:center;gap:10px}
+    .clock{width:100%;justify-content:center}
+    .btn-main{flex:1 1 100%}
+    .actions .btn{width:100%}
+    table{min-width:1020px;font-size:13px}
+    thead th,tbody td{padding:10px 9px}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- الهيدر -->
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🗓️</div>
+      <div>
+        <h1>سجل الأحداث</h1>
+        <p>إضافة وتوثيق الأحداث مع تحديد وقت وقوع الحدث</p>
+      </div>
+    </div>
+
+    <div class="clock">
+      <span class="dot"></span>
+      <div>
+        <div class="t" id="liveClock">00:00:00</div>
+        <div class="d" id="liveDate">—</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- الفورم -->
+  <section class="card">
+    <div class="card-title"><span class="bar"></span> إضافة حدث جديد</div>
+
+    <form id="eventForm" autocomplete="off">
+      <div class="grid">
+
+        <div class="f c3">
+          <label><span class="ico">🔢</span> الرقم (تلقائي)</label>
+          <input type="text" id="idField" readonly value="1">
+        </div>
+
+        <div class="f c3">
+          <label><span class="ico">📅</span> تاريخ اليوم</label>
+          <input type="text" id="dateField" readonly>
+        </div>
+
+        <div class="f c3">
+          <label><span class="ico">⏰</span> وقت الإضافة (تلقائي)</label>
+          <input type="text" id="timeField" readonly>
+        </div>
+
+        <div class="f c3">
+          <label><span class="ico">🗓️</span> اليوم</label>
+          <input type="text" id="dayField" readonly>
+        </div>
+
+        <!-- ⏱️ حقل وقت وقوع الحدث (قابل للتعديل) -->
+        <div class="f c6">
+          <label><span class="ico">⏱️</span> وقت وقوع الحدث</label>
+          <div style="display:flex;gap:10px;align-items:stretch">
+            <input type="time" id="occTimeField" step="1" style="flex:1">
+            <button type="button" class="btn btn-ghost now-btn" id="nowBtn">الآن</button>
+          </div>
+        </div>
+
+        <div class="f c6">
+          <label style="opacity:0;user-select:none" aria-hidden="true">.</label>
+          <div class="hint-box">
+            <span class="hint-ico">💡</span>
+            <span>يُملأ افتراضياً بالوقت الحالي — يمكنك تعديله لوقت وقوع الحدث الفعلي</span>
+          </div>
+        </div>
+
+        <div class="f c12">
+          <label><span class="ico">📌</span> عنوان الحدث</label>
+          <input type="text" id="titleField" placeholder="اكتب عنوان الحدث هنا..." maxlength="120" required>
+        </div>
+
+        <div class="f c12">
+          <label><span class="ico">📝</span> التفاصيل</label>
+          <textarea id="detailsField" placeholder="اكتب تفاصيل الحدث بالتفصيل..." maxlength="1000"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-main">➕ إضافة الحدث</button>
+        <button type="button" class="btn btn-excel" id="exportBtn">📊 تصدير إلى Excel</button>
+        <button type="button" class="btn btn-ghost" id="clearBtn">🗑️ مسح الكل</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- الجدول -->
+  <section class="card table-card">
+    <div class="table-head">
+      <div class="card-title" style="margin-bottom:0"><span class="bar"></span> الأحداث المسجّلة</div>
+      <div class="counter">📋 عدد الأحداث: <b id="countBadge">0</b></div>
+    </div>
+
+    <div class="scroll">
+      <table id="eventsTable">
+        <thead>
+          <tr>
+            <th style="width:60px">الرقم</th>
+            <th style="width:110px">التاريخ</th>
+            <th style="width:95px">اليوم</th>
+            <th style="width:110px">وقت الحدث</th>
+            <th style="width:110px">وقت الإضافة</th>
+            <th style="width:180px">العنوان</th>
+            <th>التفاصيل</th>
+            <th style="width:70px">حذف</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr id="emptyRow">
+            <td colspan="8">
+              <div class="empty">
+                <span class="em">📭</span>
+                <p>لا توجد أحداث بعد — أضف أول حدث من النموذج بالأعلى</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============ العناصر ============ */
+  const $ = id => document.getElementById(id);
+  const idField       = $('idField');
+  const dateField     = $('dateField');
+  const timeField     = $('timeField');
+  const dayField      = $('dayField');
+  const occTimeField  = $('occTimeField');
+  const titleField    = $('titleField');
+  const detailsField  = $('detailsField');
+  const tbody         = $('tbody');
+  const countBadge    = $('countBadge');
+  const form          = $('eventForm');
+  const toastEl       = $('toast');
+  const nowBtn        = $('nowBtn');
+
+  const STORAGE_KEY = 'event_log_records_v1';
+  let records = [];
+  let nextId  = 1;
+
+  /* ============ أدوات ============ */
+  const pad2 = n => String(n).padStart(2, '0');
+
+  const AR_DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+  function fmtDate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+  function fmtTime(d){ return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; }
+  function fmtDay(d){ return `${AR_DAYS[d.getDay()]} ${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+
+  // تطبيع قيمة الوقت لتكون HH:MM:SS
+  function normalizeTime(v){
+    if(!v) return '';
+    const p = String(v).split(':');
+    if(p.length === 2) return `${pad2(p[0])}:${pad2(p[1])}:00`;
+    if(p.length === 3) return `${pad2(p[0])}:${pad2(p[1])}:${pad2(p[2])}`;
+    return v;
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  let toastTimer;
+  function toast(msg, isErr){
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = isErr ? 'show err' : 'show';
+    toastTimer = setTimeout(() => { toastEl.className = isErr ? 'err' : ''; }, 2600);
+  }
+
+  /* ============ تتبع تعديل المستخدم لوقت الوقوع ============ */
+  let occTimeTouched = false;
+  occTimeField.addEventListener('input',  () => { occTimeTouched = true; });
+  occTimeField.addEventListener('change', () => { occTimeTouched = true; });
+
+  nowBtn.addEventListener('click', function(){
+    // إعادة الضبط للوضع التلقائي (الوقت الحالي)
+    occTimeTouched = false;
+    occTimeField.value = fmtTime(new Date());
+  });
+
+  /* ============ الساعة الحية + التاريخ ============ */
+  function tick(){
+    const now = new Date();
+    const t = fmtTime(now);
+
+    $('liveClock').textContent = t;
+    $('liveDate').textContent  = fmtDay(now);
+
+    timeField.value = t;
+    dateField.value = fmtDate(now);
+    dayField.value  = AR_DAYS[now.getDay()];
+
+    // تحديث وقت الوقوع تلقائياً فقط إذا لم يعدّله المستخدم
+    if(!occTimeTouched && occTimeField.value !== t){
+      occTimeField.value = t;
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* ============ التخزين ============ */
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ records, nextId }));
+    }catch(e){ /* تجاهل */ }
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      if(Array.isArray(data.records)) records = data.records;
+      if(typeof data.nextId === 'number') nextId = data.nextId;
+      if(records.length){
+        nextId = Math.max(nextId, ...records.map(r => r.id));
+      }
+    }catch(e){ records = []; }
+  }
+
+  /* ============ الرسم ============ */
+  function render(){
+    idField.value = nextId;
+    countBadge.textContent = records.length;
+
+    if(!records.length){
+      tbody.innerHTML = `
+        <tr id="emptyRow">
+          <td colspan="8">
+            <div class="empty">
+              <span class="em">📭</span>
+              <p>لا توجد أحداث بعد — أضف أول حدث من النموذج بالأعلى</p>
+            </div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = records.map(r => `
+      <tr>
+        <td><span class="id-pill">${r.id}</span></td>
+        <td class="date-cell">${esc(r.date)}</td>
+        <td class="day-cell">${esc(r.day || '—')}</td>
+        <td class="occ-time-cell">${esc(r.occTime || r.time || '—')}</td>
+        <td class="time-cell">${esc(r.time || '—')}</td>
+        <td class="title-cell">${esc(r.title)}</td>
+        <td class="det-cell">${r.details ? esc(r.details) : '<span style="opacity:.45">—</span>'}</td>
+        <td><button class="del" data-id="${r.id}" title="حذف">✕</button></td>
+      </tr>
+    `).join('');
+  }
+
+  /* ============ إضافة حدث ============ */
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    const title = titleField.value.trim();
+    if(!title){
+      toast('⚠️ الرجاء إدخال عنوان الحدث', true);
+      titleField.focus();
+      return;
+    }
+
+    const now = new Date();
+
+    // وقت الوقوع: نستخدم ما عدّله المستخدم، وإلا الوقت الحالي
+    const occTime = occTimeTouched
+      ? (normalizeTime(occTimeField.value) || fmtTime(now))
+      : fmtTime(now);
+
+    records.unshift({
+      id: nextId,
+      date: fmtDate(now),
+      day: AR_DAYS[now.getDay()],
+      time: fmtTime(now),      // وقت الإضافة (تلقائي)
+      occTime: occTime,        // وقت وقوع الحدث (قابل للتعديل)
+      title: title,
+      details: detailsField.value.trim()
+    });
+
+    nextId++;
+    save();
+    render();
+
+    titleField.value = '';
+    detailsField.value = '';
+
+    // إعادة ضبط وقت الوقوع للوضع التلقائي
+    occTimeTouched = false;
+    occTimeField.value = fmtTime(new Date());
+
+    titleField.focus();
+    toast('✅ تم إضافة الحدث بنجاح');
+  });
+
+  /* ============ حذف ============ */
+  tbody.addEventListener('click', function(e){
+    const btn = e.target.closest('.del');
+    if(!btn) return;
+
+    const id = Number(btn.dataset.id);
+    const rec = records.find(r => r.id === id);
+    if(!rec) return;
+
+    if(!confirm(`هل تريد حذف الحدث رقم ${id}؟\n"${rec.title}"`)) return;
+
+    records = records.filter(r => r.id !== id);
+    save();
+    render();
+    toast('🗑️ تم حذف الحدث');
+  });
+
+  /* ============ مسح الكل ============ */
+  $('clearBtn').addEventListener('click', function(){
+    if(!records.length){ toast('لا توجد بيانات لمسحها', true); return; }
+    if(!confirm('هل تريد مسح جميع الأحداث نهائياً؟')) return;
+    records = [];
+    nextId = 1;
+    save();
+    render();
+    toast('🧹 تم مسح جميع الأحداث');
+  });
+
+  /* ============ تصدير Excel ============ */
+  $('exportBtn').addEventListener('click', function(){
+    if(!records.length){
+      toast('⚠️ لا توجد بيانات للتصدير', true);
+      return;
+    }
+
+    const rows = records.map(r => `
+      <tr>
+        <td style="text-align:center">${r.id}</td>
+        <td style="text-align:center">${esc(r.date)}</td>
+        <td style="text-align:center">${esc(r.day || '')}</td>
+        <td style="text-align:center">${esc(r.occTime || r.time || '')}</td>
+        <td style="text-align:center">${esc(r.time || '')}</td>
+        <td>${esc(r.title)}</td>
+        <td>${esc(r.details)}</td>
+      </tr>`).join('');
+
+    const html = `
+      <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+      <head>
+        <meta charset="UTF-8">
+        <!--[if gte mso 9]>
+        <xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+          <x:Name>سجل الأحداث</x:Name>
+          <x:WorksheetOptions><x:DisplayRightToLeft/></x:WorksheetOptions>
+        </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+        <![endif]-->
+        <style>
+          table{border-collapse:collapse;font-family:'Cairo',Arial,sans-serif}
+          th,td{border:1px solid #b9c8e2;padding:8px 12px;font-size:13px;vertical-align:top}
+          th{background:#1e3a5f;color:#ffffff;font-weight:bold;text-align:center}
+          td{mso-number-format:"\\@";text-align:right}
+        </style>
+      </head>
+      <body>
+        <table dir="rtl">
+          <thead>
+            <tr>
+              <th>الرقم</th>
+              <th>التاريخ</th>
+              <th>اليوم</th>
+              <th>وقت وقوع الحدث</th>
+              <th>وقت الإضافة</th>
+              <th>العنوان</th>
+              <th>التفاصيل</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body></html>`;
+
+    const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+
+    const now = new Date();
+    a.href = url;
+    a.download = `سجل_الأحداث_${fmtDate(now)}_${pad2(now.getHours())}-${pad2(now.getMinutes())}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+    toast('📊 تم تصدير البيانات إلى Excel');
+  });
+
+  /* ============ التشغيل ============ */
+  load();
+  render();
+
+})();
+</script>
+</body>
+</html>
